@@ -1,5 +1,4 @@
 import argparse
-import json
 import math
 from copy import deepcopy
 
@@ -13,7 +12,7 @@ from loss import CapsuleLoss
 from metrics import produce_evaluation_file, calculate_eer_tdcf
 from model.models import get_model
 
-from utils import progressbar, get_optimizer
+from utils import progressbar, get_optimizer, load_checkpoint
 
 
 def main(config):
@@ -100,6 +99,6 @@ if __name__ == '__main__':
                         type=str,
                         default='configs/config_rescapsguard.json')
     args = parser.parse_args()
-    config = json.load(open(args.config))
+    config = load_checkpoint(args.config)
     main(config)
 

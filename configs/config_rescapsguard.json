@@ -7,9 +7,9 @@
       "first_conv": 128,
       "filts": [70, [1, 32], [32, 32], [32, 64], [64, 64]]
   },
-  "device": "cuda:1",
+  "device": "cuda:0",
   "num_class": 2,
-  "gpu_id": 1,
+  "gpu_id": 0,
   "num_capsules": 30,
   "epoches": 40,
   "opt": "AdaBound",
@@ -28,5 +28,6 @@
   "train_label_path": "LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt",
   "train_path_flac":"LA/ASVspoof2019_LA_train",
   "eval_label_path": "LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.eval.trl.txt",
-  "eval_path_flac": "LA/ASVspoof2019_LA_eval"
+  "eval_path_flac": "LA/ASVspoof2019_LA_eval",
+  "checkpoint": "weights/new_capsules_changed_sinc_layer.pth"
 }

@@ -1,9 +1,9 @@
 import torch
 from torch import nn
 
-from TCN import TemporalConvNet
-from capsules import PrimaryCapsules, RoutingMechanism
-from modules import Encoder
+from .TCN import TemporalConvNet
+from .capsules import PrimaryCapsules, RoutingMechanism
+from .modules import Encoder, Res2Block
 
 
 def get_model(config):
@@ -16,10 +16,13 @@ def get_model(config):
             num_iterations=config["num_iterations"]
         )
     elif config["model"] == 'Res2TCNGuard':
-        model = Res2TCNGuard()
+        model = Res2TCNGuard(d_args=config["d_args"])
     else:
         raise ValueError(f"Model {config['model']} not supported")
-    return model
+    if config["checkpoint"] is not None:
+        weights = torch.load(config["checkpoint"], map_location="cpu")
+        model.load_state_dict(weights)
+    return model.to(config["device"])
 
 
 class CapsuleNet(nn.Module):
@@ -49,9 +52,9 @@ class CapsuleNet(nn.Module):
 
 
 class Res2TCNGuard(nn.Module):
-    def __init__(self):
+    def __init__(self, d_args):
         super().__init__()
-        self.encoder = Encoder()
+        self.encoder = Encoder(d_args, _block=Res2Block)
         self.tempCNN1 = TemporalConvNet(64, [72, 36, 24, 12, 6])
         self.tempCNN2 = TemporalConvNet(64, [72, 36, 24, 12, 6])
         self.relu = nn.ReLU(0.1)

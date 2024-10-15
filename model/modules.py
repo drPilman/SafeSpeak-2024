@@ -42,7 +42,6 @@ class SincConv(nn.Module):
         super(SincConv, self).__init__()
 
         if in_channels != 1:
-
             msg = "SincConv only support one input channel (here, in_channels = {%i})" % (in_channels)
             raise ValueError(msg)
 
@@ -102,7 +101,6 @@ class SincConv(nn.Module):
         self.n_ = 2 * math.pi * torch.arange(-n, 0).view(1,
                                                          -1) / self.sample_rate
 
-
     def forward(self, waveforms):
         """
         Parameters
@@ -129,7 +127,7 @@ class SincConv(nn.Module):
         f_times_t_high = torch.matmul(high, self.n_)
 
         band_pass_left = ((torch.sin(f_times_t_high) - torch.sin(f_times_t_low)) / (
-                    self.n_ / 2)) * self.window_
+                self.n_ / 2)) * self.window_
         band_pass_center = 2 * band.view(-1, 1)  # g[0] = 2 * (f2 - f1) = 2 * band, w[0] = 1
         band_pass_right = torch.flip(band_pass_left, dims=[1])  # g[n] = g[-n]
 
@@ -324,14 +322,24 @@ class Encoder(nn.Module):
         self.first_bn = nn.BatchNorm2d(num_features=1)
         self.selu = nn.SELU(inplace=True)
 
-        self.res_encoder = nn.Sequential(
-            _block(nb_filts=filts[1], first=True),
-            _block(nb_filts=filts[2]),
-            _block(nb_filts=filts[3]),
-            _block(nb_filts=filts[4]),
-            _block(nb_filts=filts[4]),
-            _block(nb_filts=filts[4])
-        )
+        if _block == Res2Block:
+            self.res_encoder = nn.Sequential(
+                nn.Sequential(_block(nb_filts=filts[1], first=True)),
+                nn.Sequential(_block(nb_filts=filts[2])),
+                nn.Sequential(_block(nb_filts=filts[3])),
+                nn.Sequential(_block(nb_filts=filts[4])),
+                nn.Sequential(_block(nb_filts=filts[4])),
+                nn.Sequential(_block(nb_filts=filts[4]))
+            )
+        else:
+            self.res_encoder = nn.Sequential(
+                _block(nb_filts=filts[1], first=True),
+                _block(nb_filts=filts[2]),
+                _block(nb_filts=filts[3]),
+                _block(nb_filts=filts[4]),
+                _block(nb_filts=filts[4]),
+                _block(nb_filts=filts[4])
+            )
 
     def forward(self, x):
         x = x.unsqueeze(1)

@@ -6,6 +6,7 @@ import torch
 from torch import nn
 from torch.optim import Adam
 from torch_optimizer import AdaBound
+import json
 
 
 def progressbar(it, prefix="", size=60, out=sys.stdout):  # Python3.6+
@@ -100,3 +101,8 @@ def get_optimizer(model, config):
     else:
         raise ValueError(f"Optimizer {config['optimizer']} not supported")
     return optimizer
+
+
+def load_checkpoint(path):
+    with open(path, "r") as f:
+        return json.load(f)
