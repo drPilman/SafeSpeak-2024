@@ -32,7 +32,15 @@ We provide models checkpoints:
 | __Res2TCNGuard__ | [config_res2tcnguard.json](https://github.com/wh1t3tea/anti-spoof/blob/main/configs/config_res2tcnguard.json) | [__Res2TCNGuard__](https://github.com/wh1t3tea/anti-spoof/blob/main/weights/best_1.495.pth) |1.49|0.0451|
 | __ResCapsGuard__ | [config_rescapsguard.json](https://github.com/wh1t3tea/anti-spoof/blob/main/configs/config_rescapsguard.json) | [__ResCapsGuard__](https://github.com/wh1t3tea/anti-spoof/blob/main/weights/new_capsules_changed_sinc_layer.pth) |2.25|0.0744|
 
+### Evaluation
+To evaluate pre-trained models on eval set of ASVspoof 2019 follow:
 
+```bash
+python eval.py \
+--config configs/config_res2tcnguard.json \ 
+--eval_label_path ../LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.eval.trl.txt \
+--eval_path_flac ..LA/ASVspoof2019_LA_eval
+```
 
 
 
