@@ -16,11 +16,7 @@ from utils import progressbar, get_optimizer, load_checkpoint
 
 
 def main(config):
-    wandb.init(
-        project=config["wandb_project"],
-        config=config
-    )
-    datasets = get_datasets(config)
+
     dataloaders = get_dataloaders(datasets, config)
 
     model = get_model(config).to(config["device"])
@@ -67,7 +63,7 @@ def main(config):
             dataloaders["dev"],
             model, config["device"],
             loss_fn,
-            "pruduced_file.txt",
+            config["produced_file"],
             config["dev_label_path"])
         eer, tdcf = calculate_eer_tdcf(cm_scores_file=config["produced_file"], #'pruduced_file.txt',
                                        asv_score_file=config["asv_score_filename"], #"LA/ASVspoof2019_LA_asv_scores/ASVspoof2019.LA.asv.dev.gi.trl.scores.txt",
