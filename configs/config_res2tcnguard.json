@@ -1,7 +1,7 @@
 {
   "model": "Res2TCNGuard",
-  "batch_size": 28,
-  "wandb_project": "project_name",
+  "batch_size": 8,
+  "wandb_project": "Res2TCNGuard",
   "d_args": {
       "nb_samp": 64600,
       "first_conv": 128,
@@ -29,5 +29,6 @@
   "train_path_flac":"LA/ASVspoof2019_LA_train",
   "eval_label_path": "LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.eval.trl.txt",
   "eval_path_flac": "LA/ASVspoof2019_LA_eval",
-  "checkpoint": "weights/best_1.495.pth"
+  "checkpoint": "weights/best_1.495.pth",
+  "num_workers": 6
 }

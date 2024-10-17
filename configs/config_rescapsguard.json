@@ -1,6 +1,6 @@
 {
   "model": "ResCapsGuard",
-  "batch_size": 32,
+  "batch_size": 8,
   "wandb_project": "project_name",
   "d_args": {
       "nb_samp": 64600,
@@ -29,5 +29,6 @@
   "train_path_flac":"LA/ASVspoof2019_LA_train",
   "eval_label_path": "LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.eval.trl.txt",
   "eval_path_flac": "LA/ASVspoof2019_LA_eval",
-  "checkpoint": "weights/new_capsules_changed_sinc_layer.pth"
+  "checkpoint": "weights/new_capsules_changed_sinc_layer.pth",
+  "num_workers": 6
 }
