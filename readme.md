@@ -36,13 +36,12 @@ We provide models checkpoints:
 To evaluate pre-trained models on eval set of ASVspoof 2019 follow:
 
 ```bash
-python eval.py \
---config configs/config_res2tcnguard.json \ 
---eval_label_path ../LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.eval.trl.txt \
---eval_path_flac ..LA/ASVspoof2019_LA_eval
+python eval.py \ 
+--config configs/config_res2tcnguard.json \
+--eval_label_path LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.eval.trl.txt \
+--eval_path_flac LA/ASVspoof2019_LA_eval \
+--asv_score_filename LA/ASVspoof2019_LA_asv_scores/ASVspoof2019.LA.asv.eval.gi.trl.scores.txt
 ```
-
-
 
 ### License
 ```

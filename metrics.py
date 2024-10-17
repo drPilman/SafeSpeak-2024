@@ -79,6 +79,7 @@ def compute_eer(bonafide_scores, spoof_scores):
     return eer, thresholds[min_index]
 
 
+@torch.inference_mode
 def produce_evaluation_file(data_loader,
                             model,
                             device,
@@ -116,10 +117,12 @@ def produce_evaluation_file(data_loader,
         with torch.no_grad():
             # first is hidden layer, second is result
             classes, batch_out = model.forward(batch_x, random=random, dropout=dropout)
-
             # 1 - for bonafide speech class
             batch_score = (batch_out[:, 1]).data.cpu().numpy().ravel()
-            loss = loss_fn(classes, batch_y)
+            if classes.shape[-1] == 54:
+                loss = loss_fn(batch_out, batch_y)
+            else:
+                loss = loss_fn(classes, batch_y)
             current_loss += loss.item() / len(data_loader)
 
         # add outputs
@@ -132,11 +135,6 @@ def produce_evaluation_file(data_loader,
 
         # fn - uid, sco - score, trl - trial_lines
         for fn, sco, trl in zip(fname_list, score_list, trial_lines):
-            # first - id of speaker
-            # utt_id - utterance id
-            # third - "-"
-            # src - type of spoof if exist
-            # key - spoof or bonafide
             _, utt_id, _, src, key = trl.strip().split(' ')
             assert fn == utt_id
             # format: utterance id - type of spoof attack - key - score

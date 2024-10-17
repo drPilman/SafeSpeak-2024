@@ -85,14 +85,24 @@ def pad_random(x, max_len=64600):
     return padded_x
 
 
+def pad(x, max_len=64600):
+    x_len = x.shape[0]
+    if x_len >= max_len:
+        return x[:max_len]
+    # need to pad
+    num_repeats = int(max_len / x_len) + 1
+    padded_x = np.tile(x, (1, num_repeats))[:, :max_len][0]
+    return padded_x
+
+
 def get_optimizer(model, config):
-    if config["optimizer"] == 'Adam':
+    if config["opt"] == 'Adam':
         optimizer = Adam(
             model.parameters(),
             lr=config["lr"],
             weight_decay=config["weight_decay"]
         )
-    elif config["optimizer"] == 'AdaBound':
+    elif config["opt"] == 'AdaBound':
         optimizer = AdaBound(
             model.parameters(),
             lr=config['lr'],

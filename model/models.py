@@ -67,7 +67,7 @@ class Res2TCNGuard(nn.Module):
         self.linear4 = nn.Linear(54, 2)
         self.drop = nn.Dropout(p=0.2)
 
-    def forward(self, x):
+    def forward(self, x, random=0, dropout=0):
         x = self.encoder(x)
         matrix1, _ = torch.max(x, dim=2)  # T
         matrix2, _ = torch.max(x, dim=3)  # S
