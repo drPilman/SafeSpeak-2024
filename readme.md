@@ -20,7 +20,7 @@ cd anti-spoof
 
 pip install requirements.txt
 
-python train.py configs/config_res2tcnguard.json
+python train.py --config configs/config_res2tcnguard.json
 ```
 
 ### Pre-trained model
