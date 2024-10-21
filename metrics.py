@@ -331,6 +331,31 @@ def calculate_eer_tdcf(cm_scores_file, asv_score_file, output_file, printout=Tru
     return EER * 100, min_tDCF
 
 
+def evaluate_EER_file(ref_df, pred_df, output_file):
+    """
+
+        :param ref_df: csv file with columns: uttid, label
+        :param pred_df: csv file with columns: uttid, score
+        :return: err
+        """
+
+    ref_df = pd.read_csv(ref_df, header=None, names=["_", "uttid", "___", "__", "label"], sep=" ")
+    ref_df = ref_df.sort_values("uttid")
+
+    pred_df = pd.read_csv(pred_df, header=None, names=["uttid", "_", "__", "scores"], sep=" ")
+    pred_df = pred_df.sort_values("uttid")
+    if not ref_df["uttid"].equals(pred_df["uttid"]):
+        raise ValueError("The 'uttid' columns in the reference and prediction files do not match.")
+
+    pos_scores = pred_df["scores"][ref_df["label"] == "bonafide"]
+    neg_scores = pred_df["scores"][ref_df["label"] == "spoof"]
+
+    eer, _ = compute_eer(pos_scores, neg_scores)
+    with open(output_file, "w") as f:
+        f.write(f"EER: {eer}")
+    return eer * 100
+
+
 def evaluate_EER(ref_df, pred_df):
     """
 
@@ -351,5 +376,5 @@ def evaluate_EER(ref_df, pred_df):
     pos_scores = pred_df["scores"][ref_df["label"] == 1]
     neg_scores = pred_df["scores"][ref_df["label"] == 0]
 
-    err, _ = compute_eer(pos_scores, neg_scores)
-    return err
+    eer, _ = compute_eer(pos_scores, neg_scores)
+    return eer * 100
