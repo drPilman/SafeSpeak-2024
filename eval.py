@@ -6,7 +6,7 @@ from utils import load_checkpoint, pad
 
 from dataset import get_data_for_dataset, ASVspoof2019, get_dataloaders
 from model.models import get_model
-from metrics import produce_evaluation_file, calculate_eer_tdcf
+from metrics import produce_evaluation_file, evaluate_EER
 from loss import CapsuleLoss
 
 
@@ -33,10 +33,10 @@ def main(args, cfg):
         loss_fn,
         cfg["produced_file"],
         cfg["eval_label_path"])
-    calculate_eer_tdcf(cm_scores_file=cfg["produced_file"],
-                                   asv_score_file=args.asv_score_filename,
-                                   output_file=args.output_file,
-                                   printout=True)
+    print(evaluate_EER(
+        pred_df=cfg["produced_file"],
+        ref_df=args.asv_score_filename,
+    ))
 
 
 if __name__ == "__main__":
