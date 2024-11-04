@@ -144,6 +144,52 @@ def produce_evaluation_file(data_loader,
 
     return current_loss
 
+@torch.inference_mode
+def produce_submit_file(data_loader,
+                            model,
+                            device,
+                            save_path,
+                            random=False,
+                            dropout=0):
+    """
+    Create file, that need to give in function calculcate_t-DCF_EER
+    args:
+        data_loader: loader, that gives batch to model
+        model: model, that calculate what we need
+        device: device for data, model
+        save_path: path where file shoud be saved
+    """
+
+    # turning model into evaluation mode
+    model.eval()
+
+    # list of utterance id and list of score for appropiate uid
+    fname_list = []
+    score_list = []
+    # inference
+    for batch_x, utt_id in progressbar(data_loader, prefix='computing cm score'):
+        batch_x = batch_x.to(device)
+        with torch.no_grad():
+            # first is hidden layer, second is result
+            classes, batch_out = model.forward(batch_x, random=random, dropout=dropout)
+            # 1 - for bonafide speech class
+            batch_score = (batch_out[:, 1]).data.cpu().numpy().ravel()
+
+        # add outputs
+        fname_list.extend(utt_id)
+        score_list.extend(batch_score.tolist())
+    assert len(fname_list) == len(score_list)
+
+    # saving results
+    with open(save_path, "w") as fh:
+        for fn, sco in zip(fname_list, score_list):
+            fh.write("{} {} {}\n".format(utt_id, key, sco))
+    df = pd.read_csv(save_path, sep=" ", names=["ID", "score"])
+    df.to_csv(save_path, index=False)
+    print("Scores saved to {}".format(save_path))
+
+    return 0
+
 
 def obtain_asv_error_rates(tar_asv, non_asv, spoof_asv, asv_thresholds):
     """
