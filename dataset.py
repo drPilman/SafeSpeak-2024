@@ -36,14 +36,19 @@ class EvalDataset(Dataset):
         self.pad_fn = pad_fn
 
     def __getitem__(self, index):
-        path_to_flac = f"{self.dir_path}/{self.ids[index]}.wav"
-        audio, rate = sf.read(path_to_flac)
+        path_to_wav = f"{self.dir_path}/{self.ids[index]}"
+        audio, rate = sf.read(path_to_wav)
         x_pad = self.pad_fn(audio, self.cut)
         x_inp = Tensor(x_pad)
         return x_inp, self.ids[index]
 
     def __len__(self):
         return len(self.ids)
+
+
+def get_data_for_evaldataset(path):
+    ids_list = os.listdir(path)
+    return ids_list
 
 
 def get_data_for_dataset(path):
@@ -57,11 +62,6 @@ def get_data_for_dataset(path):
             label = 1 if label == "bonafide" else 0
             label_list.append(label)
     return ids_list, label_list
-
-def get_data_for_evaldataset(path):
-    ids_list = []
-    ids_list = os.listdir(path)
-    return ids_list
 
 
 def get_datasets(config):
