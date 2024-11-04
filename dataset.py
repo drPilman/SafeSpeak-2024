@@ -27,6 +27,23 @@ class ASVspoof2019(Dataset):
     def __len__(self):
         return len(self.ids)
 
+class EvalDataset(Dataset):
+    def __init__(self, ids, dir_path, pad_fn=pad_random, cut=64600):
+        self.ids = ids
+        self.dir_path = dir_path
+        self.cut = cut
+        self.pad_fn = pad_fn
+
+    def __getitem__(self, index):
+        path_to_flac = f"{self.dir_path}/{self.ids[index]}.wav"
+        audio, rate = sf.read(path_to_flac)
+        x_pad = self.pad_fn(audio, self.cut)
+        x_inp = Tensor(x_pad)
+        return x_inp, self.ids[index]
+
+    def __len__(self):
+        return len(self.ids)
+
 
 def get_data_for_dataset(path):
     ids_list = []
@@ -39,6 +56,11 @@ def get_data_for_dataset(path):
             label = 1 if label == "bonafide" else 0
             label_list.append(label)
     return ids_list, label_list
+
+def get_data_for_evaldataset(path):
+    ids_list = []
+    ids_list = os.listdir(path)
+    return ids_list
 
 
 def get_datasets(config):
