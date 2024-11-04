@@ -171,6 +171,7 @@ def produce_submit_file(data_loader,
         batch_x = batch_x.to(device)
         with torch.no_grad():
             # first is hidden layer, second is result
+            print(batch_x.shape)
             classes, batch_out = model.forward(batch_x, random=random, dropout=dropout)
             # 1 - for bonafide speech class
             batch_score = (batch_out[:, 1]).data.cpu().numpy().ravel()
@@ -183,7 +184,9 @@ def produce_submit_file(data_loader,
     # saving results
     with open(save_path, "w") as fh:
         for fn, sco in zip(fname_list, score_list):
-            fh.write("{} {} {}\n".format(utt_id, key, sco))
+            if ".wav" in fn:
+                fn = fn.replace(".wav", "")
+            fh.write("{} {}\n".format(fn, sco))
     df = pd.read_csv(save_path, sep=" ", names=["ID", "score"])
     df.to_csv(save_path, index=False)
     print("Scores saved to {}".format(save_path))
