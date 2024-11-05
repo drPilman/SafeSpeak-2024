@@ -1,6 +1,6 @@
 # ResCapsGuard | Res2TCNGuard
 
-This repository provides a code for training and submitting to __SafeSpeak-2024 competition__ audio anti-spoofing systems ResCapsGuard and Res2TCNGuard proposed in 'Capsule-based and TCN-based approaches for spoofing detection in voice biometry'
+This repository provides a baseline code for training and submitting to __SafeSpeak-2024 competition__. Repository contains pretrained anti-spoofing systems ResCapsGuard and Res2TCNGuard proposed in 'Capsule-based and TCN-based approaches for spoofing detection in voice biometry'
 
 
 
