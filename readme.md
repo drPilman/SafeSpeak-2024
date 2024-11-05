@@ -2,7 +2,12 @@
 
 This repository provides a baseline code for training and submitting for __SafeSpeak-2024 competition__. Repository contains pretrained anti-spoofing systems ResCapsGuard and Res2TCNGuard proposed in 'Capsule-based and TCN-based approaches for spoofing detection in voice biometry'
 
+### Submit
 
+To make submit file for competition we provide __submit.py__:
+```bash
+python submit.py --config configs/config_res2tcnguard.json --eval_path_wav wavs_dir
+```
 
 ### Data preparation
 We train/validate/evaluate models using the ASVspoof 2019 logical access dataset [1].
