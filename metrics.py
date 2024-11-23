@@ -427,3 +427,53 @@ def evaluate_EER(ref_df, pred_df):
 
     eer, _ = compute_eer(pos_scores, neg_scores)
     return eer * 100
+
+
+def calculate_eer(cm_scores_file):
+    """
+    Function cimputes tdcf, eer for CM sustem, and also compute
+    EER of each type of attack and write them into file
+    args:
+        cm_scores_file: file from produce_evaluation file
+        asv_score_file: file from organizers
+        ouput_file: file where information of each type of attack for eval dataset will be
+        printout: print this file or not
+    output:
+        EER * 100: percentage of equal error rate for CM system
+        min_tDCF: value of t-DCF for CM system
+    todo:
+        rewrite into torch
+        return array instead of create file
+    """
+    # cm data from file
+    cm_data = np.genfromtxt(cm_scores_file, dtype=str)
+
+    # type of spoof attack
+    cm_sources = cm_data[:, 1]
+
+    # spoof or bonafide speech
+    cm_keys = cm_data[:, 2]
+
+    # score for utterance
+    cm_scores = cm_data[:, 3].astype(np.float64)
+
+    # score for bonafide speech
+    bona_cm = cm_scores[cm_keys == 'bonafide']
+
+    # score for spoofed utterance
+    spoof_cm = cm_scores[cm_keys == 'spoof']
+
+    # equal error rate
+    EER, _ = compute_eer(bona_cm, spoof_cm)
+
+
+    attack_types = [f'A{_id:02d}' for _id in range(7, 20)]
+    spoof_cm_breakdown = {
+        attack_type: cm_scores[cm_sources == attack_type]
+        for attack_type in attack_types
+    }
+    eer_cm_breakdown = {
+        attack_type: compute_eer(bona_cm, spoof_cm_breakdown[attack_type])[0]
+        for attack_type in attack_types
+    }
+    return EER * 100, eer_cm_breakdown
