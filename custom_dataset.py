@@ -41,7 +41,7 @@ class SafeSpeek(data.Dataset):
 
 
     def __getitem__(self, index: int) -> tuple[Tensor, int]:
-        path_to_flac = f"{self.dir_path}/flac/{self.ids[index]}.flac"
+        path_to_flac = f"{self.dir_path}/{self.ids[index]}.flac"
         audio, rate = sf.read(path_to_flac)
         x_pad = self.pad_fn(audio, self.cut)
         x_inp = Tensor(x_pad)
@@ -80,7 +80,7 @@ class SafeSpeek(data.Dataset):
 
             # change tonality of audio
             elif aug == "pitch":
-                n_steps = random.choice([-3, -2, 2])
+                n_steps = random.choice([-2, -1, 1])
                 audio = torchaudio.functional.pitch_shift(
                     waveform=audio,
                     sample_rate=rate,
@@ -90,12 +90,12 @@ class SafeSpeek(data.Dataset):
             elif aug == "time_dropout":
                 dropper = sb.augment.time_domain.DropChunk(
                     # zero mask with random size from ... to ...
-                    drop_length_low=2000, 
-                    drop_length_high=3000, 
+                    drop_length_low=1000, 
+                    drop_length_high=2500, 
 
                     # random number of masks from ... to ...
-                    drop_count_low=5, 
-                    drop_count_high=10
+                    drop_count_low=2, 
+                    drop_count_high=3
                 )
                 audio = dropper(audio, Tensor([1.]))
                 
