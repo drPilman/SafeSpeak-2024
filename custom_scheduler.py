@@ -19,7 +19,7 @@ def get_cosine_warm_up(
     _______
     torch.optim.lr_scheduler.LRScheduler
     """
-    assert warm_up_steps > total_steps, "Total number of steps must be greater then warm-up steps"
+    assert warm_up_steps < total_steps, "Total number of steps must be greater then warm-up steps"
     scheduler1 = optim.lr_scheduler.LinearLR(
         optimizer, 
         total_iters=warm_up_steps, 
