@@ -9,7 +9,7 @@ from torch import nn
 
 from dataset import get_datasets, get_dataloaders
 from loss import CapsuleLoss
-from metrics import produce_evaluation_file, calculate_eer_tdcf
+from metrics import produce_evaluation_file, calculate_eer
 from model.models import get_model
 
 from utils import progressbar, get_optimizer, load_checkpoint
@@ -67,10 +67,7 @@ def main(config):
             loss_fn,
             config["produced_file"],
             config["dev_label_path"])
-        eer, tdcf = calculate_eer_tdcf(cm_scores_file=config["produced_file"],
-                                       asv_score_file=config["asv_score_filename"],
-                                       output_file=None,
-                                       printout=False)
+        eer, eer_per_attack = calculate_eer(cm_scores_file=config["produced_file"])
 
         if best_score > eer:
             best_score = eer
@@ -84,7 +81,7 @@ def main(config):
             "train_loss": train_loss,
             "dev_loss": dev_loss,
             "dev_eer": eer,
-            "dev_tdcf": tdcf
+            **eer_per_attack
         }
         wandb.log(metrics)
 
