@@ -123,12 +123,12 @@ def get_datasets(config):
         False
     )
 
-    eval_ids, eval_labels = get_data_for_dataset(config["eval_label_path"])
+    # eval_ids, eval_labels = get_data_for_dataset(config["eval_label_path"])
 
-    eval_dataset = SafeSpeek(eval_ids, config["eval_path_flac"], eval_labels, val_pad_fn, False)
+    # eval_dataset = SafeSpeek(eval_ids, config["eval_path_flac"], eval_labels, val_pad_fn, False)
 
     return {
         "train": train_dataset,
-        "dev": dev_dataset,
-        "eval": eval_dataset
+        "dev": dev_dataset
+        # "eval": eval_dataset
     }            
