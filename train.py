@@ -56,7 +56,7 @@ def main(config):
                 loss = loss_fn(class_, label)
             else:
                 raise NotImplementedError
-            wandb.log(loss.item())
+            wandb.log({"loss": loss.item()})
             train_loss += loss.item() / len(dataloaders["train"])
             loss.backward()
             optimizer.step()
