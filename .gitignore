@@ -1,2 +1,9 @@
+# python files
 .idea
 __pycache__/
+.venv
+
+# test files
+foo.*
+bar.*
+baz.*
