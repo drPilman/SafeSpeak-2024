@@ -7,7 +7,8 @@ import wandb
 from IPython.core.display_functions import clear_output
 from torch import nn
 
-from dataset import get_datasets, get_dataloaders
+from custom_dataset import get_datasets
+from dataset import get_dataloaders
 from loss import CapsuleLoss
 from metrics import produce_evaluation_file, calculate_eer
 from model.models import get_model
@@ -55,6 +56,7 @@ def main(config):
                 loss = loss_fn(class_, label)
             else:
                 raise NotImplementedError
+            wandb.log({"loss": loss.item()})
             train_loss += loss.item() / len(dataloaders["train"])
             loss.backward()
             optimizer.step()
@@ -78,12 +80,12 @@ def main(config):
         clear_output()
 
         metrics = {
-            "train_loss": train_loss,
+            "train_loss_epoch": train_loss,
             "dev_loss": dev_loss,
             "dev_eer": eer,
             **eer_per_attack
         }
-        wandb.log(metrics)
+        wandb.log(metrics, step=len(dataloaders["train"])*epoch)
 
     wandb.finish()
 
