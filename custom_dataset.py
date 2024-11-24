@@ -2,6 +2,13 @@ import torch
 from torch import distributions, Tensor
 from torch.utils import data
 import torchaudio
+from torch_audiomentations import (
+    Compose, 
+    AddGaussianNoise, 
+    PitchShift, 
+    TimeMask,
+    TimeStretch,
+)
 import speechbrain as sb
 import soundfile as sf
 
@@ -38,6 +45,35 @@ class SafeSpeek(data.Dataset):
         self.pad_fn = pad_fn
         self.cut = cut
         self.is_train = is_train
+        if self.is_train:
+            self.augmentations = Compose(
+                transforms=[
+                    AddGaussianNoise(
+                        min_amplitude=0.001,
+                        max_amplitude=0.015,
+                        p=0.1
+                    ),
+                    PitchShift(
+                        min_semitones=-2.0,
+                        max_semitones=2.0,
+                        p=0.1
+                    ),
+                    TimeMask(
+                        # in %
+                        min_band_part=0.1,
+                        max_band_part=0.15,
+                        fade=True,
+                        p=0.1
+                    ),
+                    TimeStretch(
+                        min_rate=0.8,
+                        max_rate=1.2,
+                        # padding
+                        leave_length_unchanged=True,
+                        p=0.1
+                    )
+                ]
+            )
 
 
     def __getitem__(self, index: int) -> tuple[Tensor, int]:
@@ -50,56 +86,16 @@ class SafeSpeek(data.Dataset):
             return x_inp, self.ids[index], torch.tensor(self.labels[index])
         
         # TODO: Uncomment augmentations
-        # x_inp = self._augment_audio(x_inp, rate)
+        # x_inp = self._augment_audio(x_inp)
 
         return x_inp, torch.tensor(self.labels[index]), rate
 
     def __len__(self) -> int:
         return len(self.ids)
     
-    def _augment_audio(self, audio: Tensor, rate: int) -> Tensor:
-        aug_types = ["noise", "pitch", "speed", "time_dropout"]
-        n_augs = random.randint(0, len(aug_types))
-        augs = [random.choice(aug_types) for _ in range(n_augs)]
-
-        for aug in augs:
-            # add noise to audio
-            if aug == "noise":
-                noiser = distributions.Normal(0, 4e-2)
-                audio = audio + noiser.sample(audio.size())
-
-            # change speed of original audio
-            elif aug == "speed":
-                pertrubator = sb.augment.time_domain.SpeedPerturb(
-                    orig_freq=rate, 
-                    # choose random % of speed from the list below
-                    speed=[70, 90, 110, 130]
-                )
-                audio = pertrubator(audio)
-                audio = Tensor(pad(audio, self.cut))
-
-            # change tonality of audio
-            elif aug == "pitch":
-                n_steps = random.choice([-2, -1, 1])
-                audio = torchaudio.functional.pitch_shift(
-                    waveform=audio,
-                    sample_rate=rate,
-                    n_steps=n_steps
-                )
-
-            elif aug == "time_dropout":
-                dropper = sb.augment.time_domain.DropChunk(
-                    # zero mask with random size from ... to ...
-                    drop_length_low=1000, 
-                    drop_length_high=2500, 
-
-                    # random number of masks from ... to ...
-                    drop_count_low=2, 
-                    drop_count_high=3
-                )
-                audio = dropper(audio, Tensor([1.]))
-                
-        return audio
+    def _augment_audio(self, audio: Tensor) -> Tensor:
+        return self.augmentations(audio)
+    
 
 def get_datasets(config):
     if config["model"] == "Res2TCNGuard":
