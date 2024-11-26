@@ -1,6 +1,6 @@
 {
   "model": "Wav2Vec2",
-  "batch_size": 1,
+  "batch_size": 16,
   "wandb_project": "SafeSpeak",
   "wandb_entity": "pepelac",
   "d_args": {
@@ -25,12 +25,13 @@
   "gamma": 0.5,
   "step_size": 5,
   "checkpoint": null,
-  "num_workers": 6,
+  "num_workers": 8,
   "data_dir": "/data/home/BORODIND_DATASETS",
   "datasets": {
     "train": "data/train.csv",
     "validate": "data/validate.csv"
   },
-  "aug": "",
-  "test": true
+  "aug": "Degrader",
+  "test": false,
+  "val_step": 500
 }

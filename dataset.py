@@ -108,14 +108,14 @@ def get_dataloaders(datasets, config):
             num_workers=config["num_workers"]
         )
         dataloaders["train"] = train_loader
-    if datasets.get("dev"):
+    if datasets.get("validate"):
         dev_loader = DataLoader(
-            datasets["dev"],
+            datasets["validate"],
             batch_size=config["batch_size"],
             shuffle=False,
             num_workers=config["num_workers"]
         )
-        dataloaders["dev"] = dev_loader
+        dataloaders["validate"] = dev_loader
 
     if datasets.get("eval"):
         eval_loader = DataLoader(

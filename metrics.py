@@ -29,10 +29,12 @@ def compute_det_curve(bonafide_scores, spoof_scores):
 
     # label of bona fide score is 1
     # label of spoof score is 0
-    labels = np.concatenate((np.ones(bonafide_scores.size), np.zeros(spoof_scores.size)))
+    labels = np.concatenate(
+        (np.ones(bonafide_scores.size), np.zeros(spoof_scores.size))
+    )
 
     # indexes of sorted scores in all scores
-    indices = np.argsort(all_scores, kind='mergesort')
+    indices = np.argsort(all_scores, kind="mergesort")
     # sort labels based on scores
     labels = labels[indices]
 
@@ -40,7 +42,9 @@ def compute_det_curve(bonafide_scores, spoof_scores):
 
     # tar cumulative value
     tar_trial_sums = np.cumsum(labels)
-    nontarget_trial_sums = spoof_scores.size - (np.arange(1, n_scores + 1) - tar_trial_sums)
+    nontarget_trial_sums = spoof_scores.size - (
+        np.arange(1, n_scores + 1) - tar_trial_sums
+    )
 
     # false rejection rates
     frr = np.concatenate((np.atleast_1d(0), tar_trial_sums / bonafide_scores.size))
@@ -49,7 +53,9 @@ def compute_det_curve(bonafide_scores, spoof_scores):
     far = np.concatenate((np.atleast_1d(1), nontarget_trial_sums / spoof_scores.size))
 
     # Thresholds are the sorted scores
-    thresholds = np.concatenate((np.atleast_1d(all_scores[indices[0]] - 0.001), all_scores[indices]))
+    thresholds = np.concatenate(
+        (np.atleast_1d(all_scores[indices[0]] - 0.001), all_scores[indices])
+    )
 
     return frr, far, thresholds
 
@@ -81,76 +87,42 @@ def compute_eer(bonafide_scores, spoof_scores):
 
 
 @torch.inference_mode
-def produce_evaluation_file(data_loader,
-                            model,
-                            device,
-                            loss_fn,
-                            save_path,
-                            trial_path,
-                            random=False,
-                            dropout=0):
-    """
-    Create file, that need to give in function calculcate_t-DCF_EER
-    args:
-        data_loader: loader, that gives batch to model
-        model: model, that calculate what we need
-        device: device for data, model
-        save_path: path where file shoud be saved
-        trial_path: path from LA CM protocols
-    todo:
-        this function must return result: tensor of uid, src, key, score
-    """
-
+def validate(data_loader, model, device, loss_fn):
     # turning model into evaluation mode
     model.eval()
 
-    # read file ASVspoof2019.LA.cm.<dev/train/eval>.trl.txt
-    with open(trial_path, "r") as file_trial:
-        trial_lines = file_trial.readlines()
-
-    # list of utterance id and list of score for appropiate uid
-    fname_list = []
-    score_list = []
     current_loss = 0
+    scores_all = []
+    labels_all = []
+
     # inference
-    for batch_x, utt_id, batch_y in progressbar(data_loader, prefix='computing cm score'):
-        batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-        with torch.no_grad():
-            # first is hidden layer, second is result
-            classes, batch_out = model.forward(batch_x, random=random, dropout=dropout)
-            # 1 - for bonafide speech class
-            batch_score = (batch_out[:, 1]).data.cpu().numpy().ravel()
-            if classes.shape[-1] == 54:
-                loss = loss_fn(batch_out, batch_y)
-            else:
-                loss = loss_fn(classes, batch_y)
-            current_loss += loss.item() / len(data_loader)
+    for i, (data, label) in progressbar(
+        data_loader, prefix="Validate"
+    ):
+        data, label = data.to(device), label.to(device)
+        # first is hidden layer, second is result
+        classes, batch_out = model.forward(data)
+        # 1 - for bonafide speech class
+        batch_score = (batch_out[:, 1]).data.cpu().numpy().ravel()
+        if model.__class__.__name__ == "ResCapsGuard":
+            loss = loss_fn(classes, label)
+        else:
+            loss = loss_fn(batch_out, label)
+        current_loss += loss.item() / len(data_loader)
+        labels_all.append(label)
+        scores_all.append(batch_score)
+        if i!=0 and i%10 ==0:
+            break
 
-        # add outputs
-        fname_list.extend(utt_id)
-        score_list.extend(batch_score.tolist())
-    assert len(trial_lines) == len(fname_list) == len(score_list)
+    scores_all = np.concat(scores_all)
+    labels_all = np.concat(labels_all)
+    EER, _ = compute_eer(scores_all[labels_all==1], scores_all[labels_all==0])
 
-    # saving results
-    with open(save_path, "w") as fh:
+    return current_loss, EER
 
-        # fn - uid, sco - score, trl - trial_lines
-        for fn, sco, trl in zip(fname_list, score_list, trial_lines):
-            _, utt_id, _, src, key = trl.strip().split(' ')
-            assert fn == utt_id
-            # format: utterance id - type of spoof attack - key - score
-            fh.write("{} {} {} {}\n".format(utt_id, src, key, sco))
-    print("Scores saved to {}".format(save_path))
-
-    return current_loss
 
 @torch.inference_mode
-def produce_submit_file(data_loader,
-                            model,
-                            device,
-                            save_path,
-                            random=False,
-                            dropout=0):
+def produce_submit_file(data_loader, model, device, save_path, random=False, dropout=0):
     """
     Create file, that need to give in function calculcate_t-DCF_EER
     args:
@@ -167,7 +139,7 @@ def produce_submit_file(data_loader,
     fname_list = []
     score_list = []
     # inference
-    for batch_x, utt_id in progressbar(data_loader, prefix='computing cm score'):
+    for batch_x, utt_id in progressbar(data_loader, prefix="computing cm score"):
         batch_x = batch_x.to(device)
         with torch.no_grad():
             # first is hidden layer, second is result
@@ -221,8 +193,9 @@ def obtain_asv_error_rates(tar_asv, non_asv, spoof_asv, asv_thresholds):
     return Pfa_asv, Pmiss_asv, Pmiss_spoof_asv
 
 
-def compute_tDCF(bonafide_score_cm, spoof_score_cm, Pfa_asv,
-                 Pmiss_asv, Pmiss_spoof_asv, cost_model):
+def compute_tDCF(
+    bonafide_score_cm, spoof_score_cm, Pfa_asv, Pmiss_asv, Pmiss_spoof_asv, cost_model
+):
     """
     This function computes min t-DCF value
 
@@ -246,10 +219,13 @@ def compute_tDCF(bonafide_score_cm, spoof_score_cm, Pfa_asv,
     )
 
     # Constants
-    C1 = cost_model['Ptar'] * (cost_model['Cmiss_cm'] - cost_model['Cmiss_asv'] * Pmiss_asv) - \
-         cost_model['Pnon'] * cost_model['Cfa_asv'] * Pfa_asv
+    C1 = (
+        cost_model["Ptar"]
+        * (cost_model["Cmiss_cm"] - cost_model["Cmiss_asv"] * Pmiss_asv)
+        - cost_model["Pnon"] * cost_model["Cfa_asv"] * Pfa_asv
+    )
 
-    C2 = cost_model['Cfa_cm'] * cost_model['Pspoof'] * (1 - Pmiss_spoof_asv)
+    C2 = cost_model["Cfa_cm"] * cost_model["Pspoof"] * (1 - Pmiss_spoof_asv)
 
     # obtain t-DCF curve for all thresholds
     tDCF = C1 * Pmiss_cm + C2 * Pfa_cm
@@ -289,25 +265,25 @@ def calculate_eer_tdcf(cm_scores_file, asv_score_file, output_file, printout=Tru
     cm_scores = cm_data[:, 3].astype(np.float64)
 
     # score for bonafide speech
-    bona_cm = cm_scores[cm_keys == 'bonafide']
+    bona_cm = cm_scores[cm_keys == "bonafide"]
 
     # score for spoofed utterance
-    spoof_cm = cm_scores[cm_keys == 'spoof']
+    spoof_cm = cm_scores[cm_keys == "spoof"]
 
     # equal error rate
     EER, _ = compute_eer(bona_cm, spoof_cm)
 
     # fix parameters for t-DCF
     cost_model = {
-        'Pspoof': 0.05,
-        'Ptar': 0.9405,
-        'Pnon': 0.0095,
-        'Cmiss': 1,
-        'Cfa': 10,  ###########
-        'Cmiss_asv': 1,
-        'Cfa_asv': 10,
-        'Cmiss_cm': 1,
-        'Cfa_cm': 10,
+        "Pspoof": 0.05,
+        "Ptar": 0.9405,
+        "Pnon": 0.0095,
+        "Cmiss": 1,
+        "Cfa": 10,  ###########
+        "Cmiss_asv": 1,
+        "Cfa_asv": 10,
+        "Cmiss_cm": 1,
+        "Cfa_cm": 10,
     }
 
     # load organizers' ASV scores
@@ -320,15 +296,15 @@ def calculate_eer_tdcf(cm_scores_file, asv_score_file, output_file, printout=Tru
     asv_scores = asv_data[:, 2].astype(np.float64)
 
     # target, non-target and spoof scores from the ASV scores
-    tar_asv = asv_scores[asv_keys == 'target']
-    non_asv = asv_scores[asv_keys == 'nontarget']
-    spoof_asv = asv_scores[asv_keys == 'spoof']
+    tar_asv = asv_scores[asv_keys == "target"]
+    non_asv = asv_scores[asv_keys == "nontarget"]
+    spoof_asv = asv_scores[asv_keys == "spoof"]
 
     # EER of the standalone systems and fix ASV operation point to
     eer_asv, asv_threshold = compute_eer(tar_asv, non_asv)
 
     # generate attack types from A07 to A19
-    attack_types = [f'A{_id:02d}' for _id in range(7, 20)]
+    attack_types = [f"A{_id:02d}" for _id in range(7, 20)]
 
     # compute eer for each type of attack
     if printout:
@@ -342,20 +318,12 @@ def calculate_eer_tdcf(cm_scores_file, asv_score_file, output_file, printout=Tru
             for attack_type in attack_types
         }
     [Pfa_asv, Pmiss_asv, Pmiss_spoof_asv] = obtain_asv_error_rates(
-        tar_asv,
-        non_asv,
-        spoof_asv,
-        asv_threshold
+        tar_asv, non_asv, spoof_asv, asv_threshold
     )
 
     # Compute t-DCF
     tDCF_curve, CM_thresholds = compute_tDCF(
-        bona_cm,
-        spoof_cm,
-        Pfa_asv,
-        Pmiss_asv,
-        Pmiss_spoof_asv,
-        cost_model
+        bona_cm, spoof_cm, Pfa_asv, Pmiss_asv, Pmiss_spoof_asv, cost_model
     )
 
     # Minimum t-DCF
@@ -363,18 +331,21 @@ def calculate_eer_tdcf(cm_scores_file, asv_score_file, output_file, printout=Tru
     min_tDCF = tDCF_curve[min_tDCF_index]
     # write results into file
     if printout:
-        with open(output_file, 'w') as f_res:
-            f_res.write('\nCM SYSTEM\n')
-            f_res.write("""\tEER\t\t= {:8.9f} % 
-            (Equal error rate for countermeasure)\n""".format(EER * 100)
-                        )
-            f_res.write('\nTANDEM\n')
-            f_res.write('\tmin-tDCF\t\t= {:8.9f}\n'.format(min_tDCF))
-            f_res.write('\nBREAKDOWN CM SYSTEM\n')
+        with open(output_file, "w") as f_res:
+            f_res.write("\nCM SYSTEM\n")
+            f_res.write(
+                """\tEER\t\t= {:8.9f} % 
+            (Equal error rate for countermeasure)\n""".format(
+                    EER * 100
+                )
+            )
+            f_res.write("\nTANDEM\n")
+            f_res.write("\tmin-tDCF\t\t= {:8.9f}\n".format(min_tDCF))
+            f_res.write("\nBREAKDOWN CM SYSTEM\n")
             for attack_type in attack_types:
                 _eer = eer_cm_breakdown[attack_type] * 100
                 f_res.write(
-                    f'\tEER {attack_type}\t\t= {_eer:8.9f} % (Equal error rate for {attack_type})\n'
+                    f"\tEER {attack_type}\t\t= {_eer:8.9f} % (Equal error rate for {attack_type})\n"
                 )
         os.system(f"cat {output_file}")
     return EER * 100, min_tDCF
@@ -383,18 +354,24 @@ def calculate_eer_tdcf(cm_scores_file, asv_score_file, output_file, printout=Tru
 def evaluate_EER_file(ref_df, pred_df, output_file):
     """
 
-        :param ref_df: csv file with columns: uttid, label
-        :param pred_df: csv file with columns: uttid, score
-        :return: err
-        """
+    :param ref_df: csv file with columns: uttid, label
+    :param pred_df: csv file with columns: uttid, score
+    :return: err
+    """
 
-    ref_df = pd.read_csv(ref_df, header=None, names=["_", "uttid", "___", "__", "label"], sep=" ")
+    ref_df = pd.read_csv(
+        ref_df, header=None, names=["_", "uttid", "___", "__", "label"], sep=" "
+    )
     ref_df = ref_df.sort_values("uttid")
 
-    pred_df = pd.read_csv(pred_df, header=None, names=["uttid", "_", "__", "scores"], sep=" ")
+    pred_df = pd.read_csv(
+        pred_df, header=None, names=["uttid", "_", "__", "scores"], sep=" "
+    )
     pred_df = pred_df.sort_values("uttid")
     if not ref_df["uttid"].equals(pred_df["uttid"]):
-        raise ValueError("The 'uttid' columns in the reference and prediction files do not match.")
+        raise ValueError(
+            "The 'uttid' columns in the reference and prediction files do not match."
+        )
 
     pos_scores = pred_df["scores"][ref_df["label"] == "bonafide"]
     neg_scores = pred_df["scores"][ref_df["label"] == "spoof"]
@@ -420,7 +397,9 @@ def evaluate_EER(ref_df, pred_df):
     pred_df = pred_df.sort_values("uttid")
 
     if not ref_df["uttid"].equals(pred_df["uttid"]):
-        raise ValueError("The 'uttid' columns in the reference and prediction files do not match.")
+        raise ValueError(
+            "The 'uttid' columns in the reference and prediction files do not match."
+        )
 
     pos_scores = pred_df["scores"][ref_df["label"] == 1]
     neg_scores = pred_df["scores"][ref_df["label"] == 0]
@@ -458,16 +437,15 @@ def calculate_eer(cm_scores_file):
     cm_scores = cm_data[:, 3].astype(np.float64)
 
     # score for bonafide speech
-    bona_cm = cm_scores[cm_keys == 'bonafide']
+    bona_cm = cm_scores[cm_keys == "bonafide"]
 
     # score for spoofed utterance
-    spoof_cm = cm_scores[cm_keys == 'spoof']
+    spoof_cm = cm_scores[cm_keys == "spoof"]
 
     # equal error rate
     EER, _ = compute_eer(bona_cm, spoof_cm)
 
-
-    attack_types = [f'A{_id:02d}' for _id in range(7, 20)]
+    attack_types = [f"A{_id:02d}" for _id in range(7, 20)]
     spoof_cm_breakdown = {
         attack_type: cm_scores[cm_sources == attack_type]
         for attack_type in attack_types

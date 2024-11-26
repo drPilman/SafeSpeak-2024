@@ -27,7 +27,7 @@ def progressbar(it, prefix="", size=60, out=sys.stdout):  # Python3.6+
               flush=True)
 
     for i, item in enumerate(it):
-        yield item
+        yield (i, item)
         show(i + 1)
     print("\n", flush=True, file=out)
 

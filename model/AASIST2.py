@@ -33,7 +33,8 @@ class SSLFrontend(nn.Module):
             task = fairseq.tasks.setup_task(task_arg)
             # https://dl.fbaipublicfiles.com/fairseq/wav2vec/xlsr2_300m.pt
             model, _, _ = fairseq.checkpoint_utils.load_model_ensemble_and_task(
-                ["weights/xlsr2_300m.pt"], task=task
+                ["weights/xlsr2_300m.pt"],
+                task=task
             )
             self.model = model[0]
         else:
@@ -722,7 +723,7 @@ class Wav2Vec2(nn.Module):
 
         self.out_layer = nn.Linear(5 * gat_dims[1], 2)
 
-    def forward(self, x, Freq_aug=False):
+    def forward(self, x, Freq_aug=False, random=0, dropout=0, random_size=0):
         x = self.frontend(x)
         x = self.attention(x)
         # spectral GAT (GAT-S)

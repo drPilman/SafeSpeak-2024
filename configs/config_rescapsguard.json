@@ -1,7 +1,8 @@
 {
   "model": "ResCapsGuard",
-  "batch_size": 8,
+  "batch_size": 1,
   "wandb_project": "project_name",
+  "wandb_entity": "pepelac",
   "d_args": {
       "nb_samp": 64600,
       "first_conv": 128,
@@ -21,14 +22,13 @@
   "num_iterations": 2,
   "gamma": 0.5,
   "step_size": 10,
-  "produced_file": "pruduced_file.txt",
-  "asv_score_filename": "LA/ASVspoof2019_LA_asv_scores/ASVspoof2019.LA.asv.dev.gi.trl.scores.txt",
-  "dev_label_path": "LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.dev.trl.txt",
-  "dev_path_flac": "LA/ASVspoof2019_LA_dev",
-  "train_label_path": "LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt",
-  "train_path_flac":"LA/ASVspoof2019_LA_train",
-  "eval_label_path": "LA/ASVspoof2019_LA_cm_protocols/ASVspoof2019.LA.cm.eval.trl.txt",
-  "eval_path_flac": "LA/ASVspoof2019_LA_eval",
-  "checkpoint": "weights/new_capsules_changed_sinc_layer.pth",
-  "num_workers": 6
+  "checkpoint": null,
+  "num_workers": 1,
+  "data_dir": "/data/home/BORODIND_DATASETS",
+  "datasets": {
+    "train": "data/train.csv",
+    "validate": "data/validate.csv"
+  },
+  "aug": "",
+  "test": true
 }
