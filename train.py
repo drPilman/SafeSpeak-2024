@@ -31,7 +31,8 @@ def main(config):
 
     optimizer = get_optimizer(model, config)
     all_step = config["epoches"] * data_len
-    scheduler = get_cosine_warm_up(optimizer, int(all_step*0.01), all_step)
+    # scheduler = get_cosine_warm_up(optimizer, int(all_step*0.01), all_step)
+    scheduler = get_cosine_warm_up(optimizer, data_len, all_step)
     # torch.optim.lr_scheduler.StepLR(
     #     optimizer, step_size=wandb.config["step_size"], gamma=wandb.config["gamma"]
     # )
