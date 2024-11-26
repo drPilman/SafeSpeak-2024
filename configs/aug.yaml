@@ -1,0 +1,66 @@
+use:
+  use_rir: True
+  use_noise: False
+  use_codec: True
+  use_spectr: True
+  use_phone: True
+
+codecs:
+  8_bit_mu_law:
+    format: wav
+    encoder: pcm_mulaw
+
+  G.722:
+    format: g722
+
+  ogg2:
+    format: ogg
+    encoder: opus
+
+  ogg3:
+    format: ogg
+
+  mp3:
+    format: mp3
+
+probs:
+  rir_prob: 1
+  noise_prob: 1
+  codec_prob: 1
+  specrt_prob: 1
+  phone_prob: 1
+
+paths:
+  noise_path: ... # path
+
+snr_range:
+  min: 5
+  max: 30
+
+room_info:
+  count: 100
+  x_max: 20
+  z_max: 5
+
+  x_min: 10
+  z_min: 2
+
+  src_pos: [1, 1, 1]
+  micr_pos: [1, 0.7, 1.2]
+
+spectrogramm:
+  num_aug: 3
+  effects:
+    [
+      highpass=frequency=1500,
+      lowpass=frequency=1000,
+      allpass,
+      bandpass=frequency=3000,
+      bandreject=frequency=3000,
+      chorus=0.5:0.9:50|60|40:0.4|0.32|0.3:0.25|0.4|0.3:2|2.3|1.3,
+      tremolo=f=8:d=0.8,
+      crystalizer,
+      flanger,
+      aphaser,
+      haas,
+    ]

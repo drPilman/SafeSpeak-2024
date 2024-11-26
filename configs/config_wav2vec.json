@@ -1,0 +1,36 @@
+{
+  "model": "Wav2Vec2",
+  "batch_size": 1,
+  "wandb_project": "SafeSpeak",
+  "wandb_entity": "pepelac",
+  "d_args": {
+      "nb_samp": 64600,
+      "first_conv": 128,
+      "filts": [70, [1, 32], [32, 32], [32, 64], [64, 64]],
+      "gat_dims": [64, 32],
+      "pool_ratios": [0.5, 0.7, 0.5, 0.5],
+      "temperatures": [2.0, 2.0, 100.0, 100.0]
+  },
+  "device": "cpu",
+  "num_class": 2,
+  "num_capsules": 30,
+  "epoches": 10,
+  "opt": "Adam",
+  "lr": 0.0001,
+  "weight_decay": 0,
+  "random": true,
+  "dropout": 0.05,
+  "random_size": 0.01,
+  "num_iterations": 2,
+  "gamma": 0.5,
+  "step_size": 5,
+  "checkpoint": null,
+  "num_workers": 6,
+  "data_dir": "/data/home/BORODIND_DATASETS",
+  "datasets": {
+    "train": "data/train.csv",
+    "validate": "data/validate.csv"
+  },
+  "aug": "",
+  "test": true
+}

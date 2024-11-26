@@ -1,118 +1,84 @@
 import torch
 from torch import Tensor
 from torch.utils import data
-from torch_audiomentations import (
-    Compose, 
-    AddGaussianNoise, 
-    PitchShift, 
-    TimeMask,
-    TimeStretch,
-)
 import soundfile as sf
 
 import typing as tp
 
 from utils import pad_random, pad
-from dataset import get_data_for_dataset
+from aug import Degrader, Degrader2
+from pathlib import Path
+import numpy as np
+import pandas as pd
+
+
+augs = {"Degrader": Degrader, "Degrader2": Degrader2}
 
 
 class SafeSpeek(data.Dataset):
     """ASVSpoof2019 dataset rebuild"""
-    def __init__(self, 
-                 ids: list[int], 
-                 dir_path: str, 
-                 labels: list[str], 
-                 pad_fn: tp.Callable = pad_random, 
-                 cut: int = 64600,
-                 is_train: bool = True
-        ) -> None:
-        """Args
-        _______
-        - ids (list[int]) - id's for audios
-        - dir_path (str) - path to folder with audios
-        - labels (list[str]) - Ground-Truth labels for audio
-        - pad_fn (typing.Callable) - function for padding audios
-        - cut (int) - max length of audio
-        - is_train (bool) - train of eval dataset
-        """
-        self.ids = ids
+
+    def __init__(
+        self,
+        paths: list[str],
+        dir_path: Path,
+        labels: list[str],
+        pad_fn: tp.Callable = pad_random,
+        cut: int = 64600,
+        is_train: bool = True,
+        aug: str | None = None,
+        is_test: bool = False,
+    ) -> None:
+        self.paths = paths
         self.dir_path = dir_path
         self.labels = labels
         self.pad_fn = pad_fn
         self.cut = cut
         self.is_train = is_train
-        if self.is_train:
-            self.augmentations = Compose(
-                transforms=[
-                    AddGaussianNoise(
-                        min_amplitude=0.001,
-                        max_amplitude=0.015,
-                        p=0.1
-                    ),
-                    PitchShift(
-                        min_semitones=-2.0,
-                        max_semitones=2.0,
-                        p=0.1
-                    ),
-                    TimeMask(
-                        # in %
-                        min_band_part=0.1,
-                        max_band_part=0.15,
-                        fade=True,
-                        p=0.1
-                    ),
-                    TimeStretch(
-                        min_rate=0.8,
-                        max_rate=1.2,
-                        # padding
-                        leave_length_unchanged=True,
-                        p=0.1
-                    )
-                ]
-            )
-
+        if self.is_train and aug:
+            self.aug = augs[aug]()
+        self.is_test = is_test
 
     def __getitem__(self, index: int) -> tuple[Tensor, int]:
-        path_to_flac = f"{self.dir_path}/{self.ids[index]}.flac"
-        audio, rate = sf.read(path_to_flac)
+        path = self.paths[index]
+        label = torch.tensor(self.labels[index])
+        if self.is_test:
+            audio = np.random.rand(1, 16000)
+        else:
+            audio, _ = sf.read(str(self.dir_path / path), samplerate=16000, channels=1)
         x_pad = self.pad_fn(audio, self.cut)
         x_inp = Tensor(x_pad)
 
-        if not self.is_train:
-            return x_inp, self.ids[index], torch.tensor(self.labels[index])
-        
-        # TODO: Uncomment augmentations
-        # x_inp = self._augment_audio(x_inp)
+        if self.is_train:
+            x_inp = self.aug(x_inp)
 
-        return x_inp, torch.tensor(self.labels[index]), rate
+        return x_inp, label
 
     def __len__(self) -> int:
-        return len(self.ids)
-    
-    def _augment_audio(self, audio: Tensor) -> Tensor:
-        return self.augmentations(audio)
-    
+        return len(self.paths)
+
+
+def get_data_for_dataset(csv_path):
+    df = pd.read_csv(csv_path, sep=",")
+    return df["path"].to_list(), df["label"].to_list()
+
 
 def get_datasets(config):
-    if config["model"] == "Res2TCNGuard":
-        val_pad_fn = pad
-    else:
-        val_pad_fn = pad_random
+    dir = Path(config["data_dir"])
 
-    train_ids, train_labels = get_data_for_dataset(config["train_label_path"])
+    train_paths, train_labels = get_data_for_dataset(config["datasets"]["train"])
     train_dataset = SafeSpeek(
-        train_ids,
-        config["train_path_flac"],
-        train_labels
+        train_paths,
+        dir,
+        train_labels,
+        is_train=True,
+        aug=config["aug"],
+        is_test=config["test"],
     )
 
-    dev_ids, dev_labels = get_data_for_dataset(config["dev_label_path"])
+    validate_path, validate_labels = get_data_for_dataset(config["datasets"]["validate"])
     dev_dataset = SafeSpeek(
-        dev_ids,
-        config["dev_path_flac"],
-        dev_labels,
-        val_pad_fn,
-        False
+        validate_path, dir, validate_labels, is_train=False, is_test=config["test"]
     )
 
     # eval_ids, eval_labels = get_data_for_dataset(config["eval_label_path"])
@@ -121,6 +87,6 @@ def get_datasets(config):
 
     return {
         "train": train_dataset,
-        "dev": dev_dataset
+        "validate": dev_dataset,
         # "eval": eval_dataset
-    }            
+    }

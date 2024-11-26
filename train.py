@@ -17,8 +17,9 @@ from utils import progressbar, get_optimizer, load_checkpoint
 
 
 def main(config):
-    wandb.init(project=config["wandb_project"],
-               config=config)
+    wandb.init(
+        project=config["wandb_project"], config=config, entity=config["wandb_entity"]
+    )
     datasets = get_datasets(config)
     dataloaders = get_dataloaders(datasets, config)
 
@@ -26,13 +27,12 @@ def main(config):
 
     optimizer = get_optimizer(model, config)
     scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer,
-        step_size=wandb.config['step_size'],
-        gamma=wandb.config['gamma'])
-    if config["model"] == "ResCapsGuard":
-        loss_fn = CapsuleLoss(gpu_id=wandb.config['gpu_id'], weight=torch.FloatTensor([0.1, 0.9]))
-    elif config["model"] == "Res2TCNGuard":
-        loss_fn = nn.CrossEntropyLoss(weight=torch.FloatTensor([0.1, 0.9]).to(config["device"]))
+        optimizer, step_size=wandb.config["step_size"], gamma=wandb.config["gamma"]
+    )
+    if config["model"] == "Wav2Vec2":
+        loss_fn = nn.CrossEntropyLoss()
+    else:
+        raise NotImplementedError
 
     best_score = math.inf
     best_state = None
@@ -40,15 +40,15 @@ def main(config):
     for epoch in range(config["epoches"]):
         # train part
         train_loss = 0
-        prefix = '%s / %s, best_score %s ' % (epoch + 1, config["epoches"], best_score)
+        prefix = "%s / %s, best_score %s " % (epoch + 1, config["epoches"], best_score)
         for data, label, _ in progressbar(dataloaders["train"], prefix=prefix):
             data, label = data.to(config["device"]), label.to(config["device"])
             optimizer.zero_grad()
             classes, class_ = model(
                 data,
-                random=wandb.config['random'],
-                dropout=wandb.config['dropout'],
-                random_size=wandb.config['random_size']
+                random=wandb.config["random"],
+                dropout=wandb.config["dropout"],
+                random_size=wandb.config["random_size"],
             )
             if config["model"] == "ResCapsGuard":
                 loss = loss_fn(classes, label)
@@ -65,16 +65,18 @@ def main(config):
         # val_part
         dev_loss = produce_evaluation_file(
             dataloaders["dev"],
-            model, config["device"],
+            model,
+            config["device"],
             loss_fn,
             config["produced_file"],
-            config["dev_label_path"])
+            config["dev_label_path"],
+        )
         eer, eer_per_attack = calculate_eer(cm_scores_file=config["produced_file"])
 
         if best_score > eer:
             best_score = eer
             best_state = deepcopy(model.state_dict())
-            path = 'best_checkpoint' + str(best_score) + ".pth"
+            path = "best_checkpoint" + str(best_score) + ".pth"
             torch.save(best_state, path)
 
         clear_output()
@@ -83,19 +85,16 @@ def main(config):
             "train_loss_epoch": train_loss,
             "dev_loss": dev_loss,
             "dev_eer": eer,
-            **eer_per_attack
+            **eer_per_attack,
         }
-        wandb.log(metrics, step=len(dataloaders["train"])*epoch)
+        wandb.log(metrics, step=len(dataloaders["train"]) * epoch)
 
     wandb.finish()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config',
-                        type=str,
-                        default='configs/config_rescapsguard.json')
+    parser.add_argument("--config", type=str, default="configs/config_wav2vec.json")
     args = parser.parse_args()
     config = load_checkpoint(args.config)
     main(config)
-

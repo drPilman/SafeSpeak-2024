@@ -4,7 +4,7 @@ from torch import nn
 from .TCN import TemporalConvNet
 from .capsules import PrimaryCapsules, RoutingMechanism
 from .modules import Encoder, Res2Block
-
+from .AASIST2 import Wav2Vec2
 
 def get_model(config):
     if config["model"] == 'ResCapsGuard':
@@ -17,6 +17,8 @@ def get_model(config):
         )
     elif config["model"] == 'Res2TCNGuard':
         model = Res2TCNGuard(d_args=config["d_args"])
+    elif config["model"] == "Wav2Vec2":
+        model = Wav2Vec2(config["d_args"])
     else:
         raise ValueError(f"Model {config['model']} not supported")
     if config["checkpoint"] is not None:
