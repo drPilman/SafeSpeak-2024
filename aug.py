@@ -6,13 +6,15 @@ import yaml
 import pyroomacoustics as pra
 import numpy as np
 import torchaudio.functional as F
-# from torch_audiomentations import (
-#     Compose,
-#     AddGaussianNoise,
-#     PitchShift,
-#     TimeMask,
-#     TimeStretch,
-# )
+from audiomentations import (
+    Compose,
+    AddGaussianNoise,
+    PitchShift,
+    TimeMask,
+    TimeStretch,
+)
+from io import BytesIO
+from pydub import AudioSegment
 from pathlib import Path
 import torch
 
@@ -181,29 +183,33 @@ class Degrader:
 
 class Degrader2:
     def __init__(self):
-        raise NotImplementedError
-# class Degrader2:
-#     def __init__(self):
-#         self.augmentations = Compose(
-#             transforms=[
-#                 AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.015, p=0.1),
-#                 PitchShift(min_semitones=-2.0, max_semitones=2.0, p=0.1),
-#                 TimeMask(
-#                     # in %
-#                     min_band_part=0.1,
-#                     max_band_part=0.15,
-#                     fade=True,
-#                     p=0.1,
-#                 ),
-#                 TimeStretch(
-#                     min_rate=0.8,
-#                     max_rate=1.2,
-#                     # padding
-#                     leave_length_unchanged=True,
-#                     p=0.1,
-#                 ),
-#             ]
-#         )
+        self.augmentations = Compose(
+            transforms=[
+                AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.015, p=0.5),
+                PitchShift(min_semitones=-2.0, max_semitones=2.0, p=0.2),
+                TimeMask(
+                    min_band_part=0.1,
+                    max_band_part=0.15,
+                    fade=True,
+                    p=0.1,
+                ),
+                TimeStretch(
+                    min_rate=0.8,
+                    max_rate=1.2,
+                    leave_length_unchanged=True,
+                    p=0.1,
+                ),
+            ]
+        )
 
-#     def __call__(self, waveform) -> torch.Any:
-#         return self.augmentations(waveform)
+    def __call__(self, waveform: np.ndarray) -> np.ndarray:
+        waveform = self.augmentations(waveform, 16000)
+        # if random.random() < 0.5:
+        #     audio_segment = AudioSegment(
+        #         waveform.tobytes(),
+        #         frame_rate=16000,
+        #         sample_width=waveform.dtype.itemsize,
+        #         channels=1
+        #     )
+        #     audio_segment.export(encoded, format="ogg")
+        return waveform

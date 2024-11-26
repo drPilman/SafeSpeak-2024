@@ -45,14 +45,16 @@ class SafeSpeek(data.Dataset):
         path = self.paths[index]
         label = torch.tensor(self.labels[index])
         if self.is_test:
-            audio = np.random.rand(16000)
+            audio = np.random.rand(16000).astype(np.float32)
         else:
-            audio, _ = sf.read(str(self.dir_path / path), samplerate=16000, channels=1)
+            audio, rate = sf.read(str(self.dir_path / path), dtype="float32")
+            assert rate==16000
         x_pad = self.pad_fn(audio, self.cut)
-        x_inp = Tensor(x_pad)
 
         if self.is_train:
-            x_inp = self.aug(x_inp)
+            x_pad = self.aug(x_pad)
+        x_inp = Tensor(x_pad)
+
         return x_inp, label
 
     def __len__(self) -> int:

@@ -10,7 +10,7 @@ from torch import nn
 from custom_dataset import get_datasets
 from dataset import get_dataloaders
 from loss import CapsuleLoss
-from metrics import validate, calculate_eer
+from metrics import validate
 from model.models import get_model
 from custom_scheduler import get_cosine_warm_up
 from utils import progressbar, get_optimizer, load_checkpoint
@@ -25,11 +25,12 @@ def main(config):
     best_score = math.inf
     data_len = len(dataloaders["train"])
 
-    model = get_model(config)
-    model= nn.DataParallel(model).to(config["device"])
+    model = get_model(config).to(config["device"])
+    if config["device"]=="cuda":
+        model= nn.DataParallel(model).to(config["device"])
 
     optimizer = get_optimizer(model, config)
-    all_step = config["epoches"]*data_len
+    all_step = config["epoches"] * data_len
     scheduler = get_cosine_warm_up(optimizer, int(all_step*0.01), all_step)
     # torch.optim.lr_scheduler.StepLR(
     #     optimizer, step_size=wandb.config["step_size"], gamma=wandb.config["gamma"]
@@ -39,7 +40,7 @@ def main(config):
     elif config["model"] == "Res2TCNGuard":
         loss_fn = nn.CrossEntropyLoss(weight=torch.FloatTensor([0.1, 0.9]).to(config["device"]))
     elif config["model"] == "Wav2Vec2":
-        loss_fn = nn.CrossEntropyLoss(weight=torch.FloatTensor([0.1, 0.9]).to(config["device"])).to(config["device"])
+        loss_fn = nn.CrossEntropyLoss().to(config["device"])
     else:
         raise NotImplementedError
 
@@ -70,33 +71,18 @@ def main(config):
             optimizer.step()
             scheduler.step()
             wandb.log({"loss": loss.item(), "lr": scheduler.get_last_lr()[0]})
-            if i!=0 and i%config["val_step"]==0:
-                val_loss, eer = validate(dataloaders["validate"], model, config["device"], loss_fn)
-                wandb.log({
-                    "val_loss": val_loss,
-                    "val_eer": eer
-                })
-                if config["test"]:
-                    break
-                if best_score > eer:
-                    best_score = eer
-                    torch.save(model.state_dict(), "best_checkpoint.pth")
-                    with open("best.txt", "w") as f:
-                        f.write(f"{epoch} {i} {best_score}")
+            if config["test"]:
+                break
         val_loss, eer = validate(dataloaders["validate"], model, config["device"], loss_fn)
         wandb.log({
             "epoch_train_loss": train_loss,
             "val_loss_epoch": val_loss,
             "val_eer_epoch": eer
         })
-        if best_score > eer:
-            best_score = eer
-            torch.save(model.state_dict(), "best_checkpoint.pth")
-            with open("best.txt", "w") as f:
-                f.write(f"{epoch} end {best_score}")
+        torch.save(model.state_dict(), "best_checkpoint.pth")
+        with open("best.txt", "a") as f:
+            f.write(f"{epoch} {eer}")
         clear_output()
-
-
     wandb.finish()
 
 

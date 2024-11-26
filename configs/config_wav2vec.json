@@ -1,6 +1,6 @@
 {
   "model": "Wav2Vec2",
-  "batch_size": 16,
+  "batch_size": 128,
   "wandb_project": "SafeSpeak",
   "wandb_entity": "pepelac",
   "d_args": {
@@ -31,7 +31,7 @@
     "train": "data/train.csv",
     "validate": "data/validate.csv"
   },
-  "aug": "Degrader",
+  "aug": "Degrader2",
   "test": false,
   "val_step": 500
 }
