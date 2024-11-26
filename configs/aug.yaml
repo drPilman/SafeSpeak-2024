@@ -1,9 +1,9 @@
 use:
   use_rir: True
   use_noise: False
-  use_codec: True
-  use_spectr: True
-  use_phone: True
+  use_codec: False
+  use_spectr: False
+  use_phone: False
 
 codecs:
   8_bit_mu_law:

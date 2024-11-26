@@ -62,12 +62,12 @@ class SSLFrontend(nn.Module):
         self.linear = nn.Linear(model_dim * 2, 23 * 29)
 
     def extract_feature(self, x):
-        if (
-            next(self.model.parameters()).device != x.device
-            or next(self.model.parameters()).dtype != x.dtype
-        ):
-            self.model
-            self.model.train()
+        # if (
+        #     next(self.model.parameters()).device != x.device
+        #     or next(self.model.parameters()).dtype != x.dtype
+        # ):
+            # self.model
+            # self.model.train()
         emb = self.model(x, mask=False, features_only=True)["x"]
         return emb
 

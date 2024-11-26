@@ -109,10 +109,8 @@ def validate(data_loader, model, device, loss_fn):
         else:
             loss = loss_fn(batch_out, label)
         current_loss += loss.item() / len(data_loader)
-        labels_all.append(label)
+        labels_all.append(label.cpu().numpy())
         scores_all.append(batch_score)
-        if i!=0 and i%10 ==0:
-            break
 
     scores_all = np.concat(scores_all)
     labels_all = np.concat(labels_all)

@@ -25,7 +25,8 @@ def main(config):
     best_score = math.inf
     data_len = len(dataloaders["train"])
 
-    model = get_model(config).to(config["device"])
+    model = get_model(config)
+    model= nn.DataParallel(model).to(config["device"])
 
     optimizer = get_optimizer(model, config)
     all_step = config["epoches"]*data_len
