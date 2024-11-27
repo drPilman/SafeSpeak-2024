@@ -112,8 +112,8 @@ def validate(data_loader, model, device, loss_fn):
         labels_all.append(label.cpu().numpy())
         scores_all.append(batch_score)
 
-    scores_all = np.concat(scores_all)
-    labels_all = np.concat(labels_all)
+    scores_all = np.concatenate(scores_all)
+    labels_all = np.concatenate(labels_all)
     EER, _ = compute_eer(scores_all[labels_all==1], scores_all[labels_all==0])
 
     return current_loss, EER
