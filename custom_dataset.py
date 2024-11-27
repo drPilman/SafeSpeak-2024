@@ -52,8 +52,9 @@ class SafeSpeek(data.Dataset):
         x_pad = self.pad_fn(audio, self.cut)
 
         if self.is_train:
-            x_pad = self.aug(x_pad)
-        x_inp = Tensor(x_pad)
+            x_inp = self.aug(x_pad)
+        else:
+            x_inp = Tensor(x_pad)
 
         return x_inp, label
 

@@ -199,9 +199,43 @@ class Degrader2:
                 ),
             ]
         )
+        with open("configs/aug.yaml", "r") as f:
+            self.yaml = yaml.load(f, Loader=yaml.SafeLoader)
+        self.use_rir = self.yaml["use"]["use_rir"]
+        if self.use_rir:
+            self.rirs = []
+            self.prepare_rir(self.yaml["room_info"]["count"])
 
-    def __call__(self, waveform: np.ndarray) -> np.ndarray:
-        waveform = self.augmentations(waveform, 16000)
+    def prepare_rir(self, n_rirs):
+        for _ in range(n_rirs):
+            cfg_room = self.yaml["room_info"]
+            x_min, x_max = cfg_room["x_min"], cfg_room["x_max"]
+            z_min, z_max = cfg_room["z_min"], cfg_room["z_max"]
+            x = random.uniform(x_min, x_max)
+            y = random.uniform(x_min, x_max)
+            z = random.uniform(z_min, z_max)
+            corners = np.array([[0, 0], [0, y], [x, y], [x, 0]]).T
+            room = pra.Room.from_corners(corners, max_order=10, absorption=0.2)
+            room.extrude(z)
+            room.add_source(cfg_room["src_pos"])
+            room.add_microphone(cfg_room["micr_pos"])
+
+            room.compute_rir()
+            rir = torch.tensor(np.array(room.rir[0]))
+            rir = rir / rir.norm(p=2)
+            self.rirs.append(rir)
+
+    def _add_rir(self, waveform, sample_rate):
+        if len(self.rirs) == 0:
+            raise RuntimeError
+        rir = random.choice(self.rirs)
+        augmented = torchaudio.functional.fftconvolve(waveform, rir)
+        if waveform.size(1) != augmented.size(1):
+            augmented = augmented[:, : waveform.size(1)]
+        return augmented.float()
+
+    def __call__(self, waveform: np.ndarray) -> torch.Tensor:
+        waveform = torch.Tensor(self.augmentations(waveform, 16000))
         # if random.random() < 0.5:
         #     audio_segment = AudioSegment(
         #         waveform.tobytes(),
@@ -210,4 +244,6 @@ class Degrader2:
         #         channels=1
         #     )
         #     audio_segment.export(encoded, format="ogg")
+        if random.random() < self.yaml["probs"]["rir_prob"] and self.use_rir:
+            waveform = self._add_rir(waveform.unsqueeze(0), 16000).squeeze()
         return waveform
