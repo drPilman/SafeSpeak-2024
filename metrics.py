@@ -137,11 +137,10 @@ def produce_submit_file(data_loader, model, device, save_path, random=False, dro
     fname_list = []
     score_list = []
     # inference
-    for batch_x, utt_id in progressbar(data_loader, prefix="computing cm score"):
+    for i, (batch_x, utt_id) in progressbar(data_loader, prefix="computing cm score"):
         batch_x = batch_x.to(device)
         with torch.no_grad():
             # first is hidden layer, second is result
-            print(batch_x.shape)
             classes, batch_out = model.forward(batch_x, random=random, dropout=dropout)
             # 1 - for bonafide speech class
             batch_score = (batch_out[:, 1]).data.cpu().numpy().ravel()
@@ -151,16 +150,8 @@ def produce_submit_file(data_loader, model, device, save_path, random=False, dro
         score_list.extend(batch_score.tolist())
     assert len(fname_list) == len(score_list)
 
-    # saving results
-    with open(save_path, "w") as fh:
-        for fn, sco in zip(fname_list, score_list):
-            if ".wav" in fn:
-                fn = fn.replace(".wav", "")
-            fh.write("{} {}\n".format(fn, sco))
-    df = pd.read_csv(save_path, sep=" ", names=["ID", "score"])
+    df = pd.DataFrame.from_dict({"ID": fname_list, "TARGET": score_list})
     df.to_csv(save_path, index=False)
-    print("Scores saved to {}".format(save_path))
-
     return 0
 
 

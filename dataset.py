@@ -40,7 +40,7 @@ class EvalDataset(Dataset):
         audio, rate = sf.read(path_to_wav)
         x_pad = self.pad_fn(audio, self.cut)
         x_inp = Tensor(x_pad)
-        return x_inp, self.ids[index]
+        return x_inp, self.ids[index].replace(".wav", "")
 
     def __len__(self):
         return len(self.ids)
